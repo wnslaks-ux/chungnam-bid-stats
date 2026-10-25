@@ -1,4 +1,11 @@
 <%@ page pageEncoding="UTF-8" %>
+<%-- 선택 시·군: 검색/통계 form 또는 ?regionCode= / /region/코드 경로 --%>
+<c:set var="activeRegion" value=""/>
+<c:choose>
+  <c:when test="${not empty form and not empty form.regionCode}"><c:set var="activeRegion" value="${form.regionCode}"/></c:when>
+  <c:when test="${not empty param.regionCode}"><c:set var="activeRegion" value="${param.regionCode}"/></c:when>
+  <c:when test="${fn:startsWith(curUri,'/region/')}"><c:set var="activeRegion" value="${fn:substringAfter(curUri,'/region/')}"/></c:when>
+</c:choose>
 <aside class="sidebar">
   <h6>입찰자료</h6>
   <a href="/" class="${curUri == '/' ? 'active' : ''}">홈</a>
@@ -13,7 +20,7 @@
   </sec:authorize>
   <h6>대상 시·군</h6>
   <c:forEach var="sr" items="${regions}">
-    <a href="/region/${sr.regionCode}" class="${curUri == '/region/'.concat(sr.regionCode) ? 'active' : ''}">· ${sr.regionName}</a>
+    <a href="/region/${sr.regionCode}" class="${activeRegion == sr.regionCode ? 'active' : ''}">· ${sr.regionName}</a>
   </c:forEach>
   <div class="side-info">데이터: 조달청 나라장터<br>공사 입찰공고 기준</div>
 </aside>
