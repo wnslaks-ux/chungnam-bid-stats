@@ -6,5 +6,20 @@
   </div></div>
   <div class="info"><%= "\uB370\uC774\uD130\u0020\uCD9C\uCC98\u003A\u0020\uC870\uB2EC\uCCAD\u0020\uB098\uB77C\uC7A5\uD130\u0020\uC785\uCC30\uACF5\uACE0\uC815\uBCF4\uC11C\uBE44\uC2A4\u0020\u0028\uACF5\uACF5\uB370\uC774\uD130\uD3EC\uD138\u0029" %><br>&copy; CN Bid Stats</div>
 </footer>
+<script>
+(function(){
+  function scrollToBidList(){
+    var el = document.getElementById('bid-list') || document.getElementById('bid-list-head') || document.getElementById('bid-list-panel');
+    if(!el) return;
+    var q = new URLSearchParams(location.search);
+    var page = parseInt(q.get('page')||'1',10);
+    if(location.hash === '#bid-list' || page > 1){
+      setTimeout(function(){ el.scrollIntoView({behavior:'instant' in document.documentElement.style ? 'instant' : 'auto', block:'start'}); }, 50);
+    }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scrollToBidList);
+  else scrollToBidList();
+})();
+</script>
 </body>
 </html>

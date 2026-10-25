@@ -2,6 +2,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 <c:set var="curUri" value="${not empty requestScope['javax.servlet.forward.request_uri'] ? requestScope['javax.servlet.forward.request_uri'] : pageContext.request.requestURI}"/>
 <!DOCTYPE html>
 <html lang="ko">
@@ -21,20 +22,22 @@
     <button type="submit">검색</button>
   </form>
   <nav class="top-nav"><a href="/">홈</a><a href="/search">검색</a><a href="/settings">설정</a><a href="/stats">통계</a>
-    <c:choose>
-      <c:when test="${not empty pageContext.request.userPrincipal}">
-        <a href="/admin" class="admin-link">${pageContext.request.userPrincipal.name}님 · 관리자</a>
+    <sec:authorize access="hasRole('ADMIN')">
+        <a href="/admin" class="admin-link"><sec:authentication property="name"/>님 · 관리자</a>
         <form method="post" action="/logout" class="d-inline"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"><button type="submit" class="link-btn">로그아웃</button></form>
-      </c:when>
-      <c:otherwise><a href="/login" class="admin-link">로그인</a></c:otherwise>
-    </c:choose></nav>
+    </sec:authorize>
+    <sec:authorize access="!isAuthenticated()">
+        <a href="/login" class="admin-link">로그인</a>
+    </sec:authorize></nav>
 </div></header>
 <div class="sub-nav"><div class="inner">
   <a href="/" class="${curUri == '/' ? 'on' : ''}">홈</a>
   <a href="/search" class="${fn:startsWith(curUri,'/search') ? 'on' : ''}">입찰공고</a>
   <a href="/stats" class="${fn:startsWith(curUri,'/stats') || fn:startsWith(curUri,'/region') ? 'on' : ''}">입찰통계</a>
   <a href="/settings" class="${fn:startsWith(curUri,'/settings') ? 'on' : ''}">검색조건</a>
+  <sec:authorize access="hasRole('ADMIN')">
   <a href="/admin" class="${fn:startsWith(curUri,'/admin') ? 'on' : ''}">관리자</a>
+  </sec:authorize>
 </div></div>
 <c:if test="${mockMode}">
   <div class="mock-banner">현재 <b>데모(Mock) 모드</b>입니다. 나라장터 API 키(G2B_SERVICE_KEY)를 설정하면 실제 데이터를 조회합니다.</div>

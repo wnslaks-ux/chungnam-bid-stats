@@ -1,26 +1,29 @@
 <%@ page pageEncoding="UTF-8" %>
+<div id="bid-list" class="bid-list-anchor">
 <div class="table-responsive"><table class="table table-sm table-bid mb-0">
-  <thead><tr><th style="width:50px">번호</th><th>공고번호</th><th>공고명</th><th>수요기관</th><th>공고일시</th><th>추정가격(원)</th></tr></thead>
+  <thead><tr><th style="width:50px">번호</th><th class="col-title">공고명</th><th class="col-price">추정가격(원)</th><th class="col-date">공고일시</th><th class="col-no">공고번호</th></tr></thead>
   <tbody>
   <c:forEach var="b" items="${results}" varStatus="st">
-    <tr><td class="text-center text-muted">${(page - 1) * pageSize + st.count}</td><td class="text-center">${b.bidNtceNo}</td>
+    <tr><td class="text-center text-muted">${(page - 1) * pageSize + st.count}</td>
       <td class="title"><a href="${b.bidNtceUrl}" target="_blank">${b.bidNtceNm}</a></td>
-      <td class="text-center">${b.dminsttNm}</td><td class="text-center text-nowrap">${b.bidNtceDt}</td>
-      <td class="text-end fw-semibold"><fmt:formatNumber value="${b.presmptPrce}" pattern="#,###"/></td></tr>
+      <td class="text-end fw-semibold text-nowrap"><fmt:formatNumber value="${b.presmptPrce}" pattern="#,###"/></td>
+      <td class="text-center text-nowrap">${b.bidNtceDt}</td>
+      <td class="text-center text-nowrap">${b.bidNtceNo}</td></tr>
   </c:forEach>
-  <c:if test="${empty results}"><tr><td colspan="6" class="text-center text-muted py-4">결과가 없습니다.</td></tr></c:if>
+  <c:if test="${empty results}"><tr><td colspan="5" class="text-center text-muted py-4">결과가 없습니다.</td></tr></c:if>
   </tbody>
 </table></div>
 <c:if test="${totalPages > 1}">
 <nav class="pager">
-  <c:if test="${hasPrev}"><a href="?${pageQuery}&page=${page - 1}">&laquo; 이전</a></c:if>
+  <c:if test="${hasPrev}"><a href="?${pageQuery}&page=${page - 1}#bid-list">&laquo; 이전</a></c:if>
   <c:if test="${!hasPrev}"><span class="disabled">&laquo; 이전</span></c:if>
   <c:forEach var="i" begin="${startPage}" end="${endPage}">
     <c:choose><c:when test="${i == page}"><span class="on">${i}</span></c:when>
-    <c:otherwise><a href="?${pageQuery}&page=${i}">${i}</a></c:otherwise></c:choose>
+    <c:otherwise><a href="?${pageQuery}&page=${i}#bid-list">${i}</a></c:otherwise></c:choose>
   </c:forEach>
-  <c:if test="${hasNext}"><a href="?${pageQuery}&page=${page + 1}">다음 &raquo;</a></c:if>
+  <c:if test="${hasNext}"><a href="?${pageQuery}&page=${page + 1}#bid-list">다음 &raquo;</a></c:if>
   <c:if test="${!hasNext}"><span class="disabled">다음 &raquo;</span></c:if>
   <span class="pager-info">${page} / ${totalPages} 페이지 (총 ${totalCount}건)</span>
 </nav>
 </c:if>
+</div>

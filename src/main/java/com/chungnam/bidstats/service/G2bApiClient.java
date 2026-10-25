@@ -15,6 +15,10 @@ import java.util.Random;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +30,11 @@ import org.springframework.web.client.RestTemplate;
 public class G2bApiClient {
     private static final Logger log = LoggerFactory.getLogger(G2bApiClient.class);
     private static final DateTimeFormatter YMD = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    /** 월 구간 병렬 조회용 소규모 데몬 스레드 풀 */
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(4, r -> {
+        Thread t = new Thread(r, "g2b-fetch"); t.setDaemon(true); return t;
+    });
 
     private final RestTemplate restTemplate;
     private final ObjectMapper om = new ObjectMapper();
@@ -73,15 +82,28 @@ public class G2bApiClient {
         if (cursor == null || end == null || cursor.isAfter(end)) {
             throw new IllegalStateException("조회 기간이 올바르지 않습니다.");
         }
-        int windows = 0;
-        while (!cursor.isAfter(end) && windows < 24) { // 최대 24개월
+        // 월 구간 목록 생성 (최대 24개월)
+        List<LocalDate[]> ranges = new ArrayList<>();
+        while (!cursor.isAfter(end) && ranges.size() < 24) {
             LocalDate windowEnd = cursor.plusMonths(1).minusDays(1);
             if (windowEnd.isAfter(end)) windowEnd = end;
-            for (BidNoticeVo v : fetchWindow(regionName, f, cursor, windowEnd)) {
-                dedup.putIfAbsent(v.getBidNtceNo(), v);
-            }
+            ranges.add(new LocalDate[]{cursor, windowEnd});
             cursor = windowEnd.plusDays(1);
-            windows++;
+        }
+        // 월 구간을 병렬 조회(소규모 풀), 결과는 기간 순서대로 병합+공고번호 중복 제거
+        List<CompletableFuture<List<BidNoticeVo>>> futures = new ArrayList<>();
+        for (LocalDate[] r : ranges) {
+            futures.add(CompletableFuture.supplyAsync(() -> fetchWindow(regionName, f, r[0], r[1]), POOL));
+        }
+        try {
+            for (CompletableFuture<List<BidNoticeVo>> fu : futures) {
+                for (BidNoticeVo v : fu.join()) dedup.putIfAbsent(v.getBidNtceNo(), v);
+            }
+        } catch (CompletionException e) {
+            futures.forEach(x -> x.cancel(true));
+            Throwable c = e.getCause();
+            if (c instanceof IllegalStateException ise) throw ise;
+            throw new IllegalStateException("나라장터 API 호출 실패: " + (c == null ? e.getMessage() : c.getMessage()), c);
         }
         return new ArrayList<>(dedup.values());
     }

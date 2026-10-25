@@ -103,3 +103,8 @@ canvas{max-width:100%}
 }
 @media (max-width:768px){.main .row>.col-6.col-md-3{flex:0 0 50%;max-width:50%}.metric .val{word-break:break-all}}
 .chart-box{position:relative;height:320px}@media (max-width:768px){.chart-box{height:240px}}
+.table-bid th.col-title{min-width:260px}.table-bid td.title{white-space:normal;min-width:220px}
+@media (max-width:768px){.table-bid td.title{min-width:180px;max-width:240px}}
+
+#bid-list,.bid-list-anchor{scroll-margin-top:12px}
+@media(max-width:860px){#bid-list,.bid-list-anchor{scroll-margin-top:8px}}

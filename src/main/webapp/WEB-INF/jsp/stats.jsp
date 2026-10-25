@@ -14,7 +14,7 @@
   <div class="col-6 col-md-3"><div class="metric accent"><div class="lbl">최대 / 최소</div><div class="val" style="font-size:15px"><fmt:formatNumber value="${summary.maxPrice}" pattern="#,###"/> / <fmt:formatNumber value="${summary.minPrice}" pattern="#,###"/>원</div></div></div>
 </div>
 <div class="panel"><h5>월별 추정금액 합계 / 건수</h5><div class="chart-box"><canvas id="monthly"></canvas></div></div>
-<div class="panel"><h5>공고 목록</h5><%@ include file="common/resultTable.jspf" %></div>
+<div class="panel" id="bid-list-panel"><h5>공고 목록</h5><%@ include file="common/resultTable.jspf" %></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 new Chart(document.getElementById('monthly'), {

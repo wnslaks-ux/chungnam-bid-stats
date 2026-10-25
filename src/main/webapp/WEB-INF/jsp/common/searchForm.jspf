@@ -14,5 +14,18 @@
     <div class="col-md-2"><label class="form-label">최대 추정가격(원)</label><input type="number" name="maxPrice" value="${form.maxPrice}" class="form-control"></div>
     <div class="col-md-2"><label class="form-label">키워드(공고명)</label><input type="text" name="keyword" value="${form.keyword}" class="form-control"></div>
   </div>
+  <div class="mt-2 date-presets">
+    <span class="text-muted small me-1">빠른 기간:</span>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setRange(this,1)">최근 1개월</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setRange(this,3)">최근 3개월</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setRange(this,6)">최근 6개월</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setYear(this)">올해</button>
+  </div>
   <div class="mt-3"><button class="btn btn-primary px-5">검색</button> <a href="${formAction}" class="btn btn-outline-secondary">초기화</a></div>
 </form>
+<script>
+function _ymd(d){var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day;}
+function setRange(btn,n){var f=btn.form,t=new Date(),s=new Date(t);s.setMonth(s.getMonth()-n);s.setDate(s.getDate()+1);
+  f.dateFrom.value=_ymd(s);f.dateTo.value=_ymd(t);}
+function setYear(btn){var f=btn.form,t=new Date();f.dateFrom.value=t.getFullYear()+'-01-01';f.dateTo.value=_ymd(t);}
+</script>
