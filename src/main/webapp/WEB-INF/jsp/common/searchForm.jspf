@@ -31,6 +31,6 @@ function setRange(btn,n){var f=btn.form,t=new Date(),s=new Date(t);s.setMonth(s.
 function setYear(btn){var f=btn.form,t=new Date();f.dateFrom.value=t.getFullYear()+'-01-01';f.dateTo.value=_ymd(t);}
 (function(){var f=document.querySelector('form.search-box');if(!f)return;
   f.addEventListener('submit',function(){var b=document.getElementById('btn-search'),s=document.getElementById('search-busy');
-    if(b){b.disabled=true;b.textContent='조회 중…';} if(s)s.style.display='inline';});
+    if(b){b.disabled=true;b.textContent='조회 중…';} if(s)s.style.display='inline'; if(window.showLoading)showLoading();});
 })();
 </script>

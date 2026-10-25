@@ -21,5 +21,34 @@
   else scrollToBidList();
 })();
 </script>
+<div id="loading-overlay" class="loading-overlay" aria-hidden="true" role="alert" aria-live="assertive">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">나라장터 조회 중…<br><small>잠시만 기다려 주세요.</small></div>
+    <div class="loading-bar"><span></span></div>
+  </div>
+</div>
+<script>
+window.showLoading=function(msg){var o=document.getElementById('loading-overlay');if(!o)return;
+  var t=o.querySelector('.loading-text');if(t)t.innerHTML=msg||'나라장터 조회 중…<br><small>잠시만 기다려 주세요.</small>';
+  o.classList.add('show');o.setAttribute('aria-hidden','false');};
+window.hideLoading=function(){var o=document.getElementById('loading-overlay');if(o){o.classList.remove('show');o.setAttribute('aria-hidden','true');}
+  var b=document.getElementById('btn-search');if(b){b.disabled=false;b.textContent='검색';}var s=document.getElementById('search-busy');if(s)s.style.display='none';};
+window.addEventListener('pageshow',function(e){if(e.persisted)hideLoading();});
+var NAV_MSG='페이지 불러오는 중…<br><small>잠시만 기다려 주세요.</small>';
+document.addEventListener('click',function(e){
+  if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+  var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;
+  var h=a.getAttribute('href');if(!h||h.charAt(0)==='#'||/^(javascript:|mailto:|tel:)/i.test(h))return;
+  if(a.target&&a.target!=='_self')return; if(a.hasAttribute('download'))return;
+  var u;try{u=new URL(a.href,location.href);}catch(x){return;}
+  if(u.origin!==location.origin)return;
+  if(u.pathname===location.pathname&&u.search===location.search&&u.hash)return;
+  showLoading(/[?&]run=1/.test(u.search)?null:NAV_MSG);});
+document.addEventListener('submit',function(e){var f=e.target;
+  setTimeout(function(){if(e.defaultPrevented||(f.target&&f.target!=='_self'))return;
+    if(f.classList.contains('search-box'))return; /* searchForm handles its own */
+    showLoading(f.classList.contains('quick-search')?null:'처리 중…<br><small>잠시만 기다려 주세요.</small>');},0);});
+</script>
 </body>
 </html>

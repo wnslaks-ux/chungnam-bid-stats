@@ -108,3 +108,14 @@ canvas{max-width:100%}
 
 #bid-list,.bid-list-anchor{scroll-margin-top:12px}
 @media(max-width:860px){#bid-list,.bid-list-anchor{scroll-margin-top:8px}}
+
+/* 조회 중 전체 화면 로딩 오버레이 */
+.loading-overlay{position:fixed;inset:0;z-index:10000;background:rgba(40,40,40,.55);display:none;align-items:center;justify-content:center;cursor:wait;pointer-events:all}
+.loading-overlay.show{display:flex}
+.loading-box{background:#fff;border-radius:10px;padding:26px 36px;min-width:260px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.loading-spinner{width:46px;height:46px;margin:0 auto 14px;border:5px solid #dde4f0;border-top-color:#1f5fbf;border-radius:50%;animation:ld-spin .8s linear infinite}
+.loading-text{font-weight:600;color:#222;line-height:1.5}.loading-text small{font-weight:400;color:#666}
+.loading-bar{margin-top:14px;height:6px;background:#e6ebf3;border-radius:3px;overflow:hidden;position:relative}
+.loading-bar span{position:absolute;top:0;left:-40%;width:40%;height:100%;background:#1f5fbf;border-radius:3px;animation:ld-bar 1.2s ease-in-out infinite}
+@keyframes ld-spin{to{transform:rotate(360deg)}}
+@keyframes ld-bar{0%{left:-40%}100%{left:100%}}
