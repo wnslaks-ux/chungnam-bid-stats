@@ -4,7 +4,7 @@
 <div class="content">
 <div class="region-grid">
 <c:forEach var="r" items="${regions}">
-  <a href="/region/${r.regionCode}" class="region-card"><b>${r.regionName}</b><small>통계 보기 &rarr;</small></a>
+  <a href="/stats?regionCode=${r.regionCode}" class="region-card"><b>${r.regionName}</b><small>통계 보기 &rarr;</small></a>
 </c:forEach>
 </div>
 <div class="panel">

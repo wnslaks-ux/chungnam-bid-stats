@@ -20,7 +20,7 @@
   </sec:authorize>
   <h6>대상 시·군</h6>
   <c:forEach var="sr" items="${regions}">
-    <a href="/region/${sr.regionCode}" class="${activeRegion == sr.regionCode ? 'active' : ''}">· ${sr.regionName}</a>
+    <a href="/stats?regionCode=${sr.regionCode}" class="${activeRegion == sr.regionCode ? 'active' : ''}">· ${sr.regionName}</a>
   </c:forEach>
   <div class="side-info">데이터: 조달청 나라장터<br>공사 입찰공고 기준</div>
 </aside>

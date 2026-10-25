@@ -27,7 +27,7 @@ public class SearchController {
                 if (p.getDateFrom() != null) form.setDateFrom(p.getDateFrom());
                 if (p.getDateTo() != null) form.setDateTo(p.getDateTo());
                 form.setMinPrice(p.getMinPrice()); form.setMaxPrice(p.getMaxPrice()); form.setKeyword(p.getKeyword());
-                run = "1";
+                // 프리셋은 폼만 채움. 나라장터 호출은 검색 버튼(run=1)에서.
             }
         }
         m.addAttribute("regions", settings.regions());

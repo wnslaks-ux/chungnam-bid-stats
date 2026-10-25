@@ -10,6 +10,12 @@ server:
   tomcat:
     uri-encoding: UTF-8
 spring:
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 7d
+          cache-public: true
   datasource:
     url: jdbc:h2:file:./data/bidstats;MODE=MySQL;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
