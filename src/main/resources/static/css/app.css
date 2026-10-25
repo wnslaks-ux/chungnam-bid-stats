@@ -1,6 +1,6 @@
 /* 충남 건설입찰 통계 테마 */
 :root{--blue:#1565c0;--blue-d:#0d47a1;--navy:#0b2a55;--orange:#f57c00;--gray:#f1f3f6;--line:#dfe3e8}
-body{background:#eef1f5;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:14px;color:#222}
+html{height:100%}body{min-height:100vh;display:flex;flex-direction:column;background:#eef1f5;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:14px;color:#222}
 a{color:var(--blue)}
 .top-header{background:#fff;border-bottom:1px solid var(--line)}
 .top-header .inner{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:14px 16px}
@@ -13,7 +13,7 @@ a{color:var(--blue)}
 .sub-nav{background:var(--blue-d)}.sub-nav .inner{max-width:1240px;margin:0 auto;padding:0 16px;display:flex}
 .sub-nav a{color:#fff;text-decoration:none;padding:11px 22px;font-weight:600}.sub-nav a:hover,.sub-nav a.on{background:var(--blue)}
 .mock-banner{max-width:1240px;margin:12px auto 0;padding:8px 14px;background:#fff8e1;border:1px solid #ffe08a;border-left:4px solid var(--orange);border-radius:4px;font-size:13px}
-.layout{max-width:1240px;margin:16px auto;padding:0 16px;display:flex;gap:16px;align-items:flex-start}
+.layout{max-width:1240px;width:100%;margin:16px auto;padding:0 16px;display:flex;gap:16px;align-items:flex-start;flex:1 0 auto}
 .sidebar{width:210px;flex-shrink:0;background:#f7f8fa;border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .sidebar h6{margin:0;padding:12px 16px;background:#e9ecf1;font-weight:700;color:var(--navy);border-bottom:1px solid var(--line)}
 .sidebar a{display:block;padding:11px 16px;color:#333;text-decoration:none;border-bottom:1px solid #eceff3}
@@ -40,7 +40,7 @@ a{color:var(--blue)}
 .metric{border:1px solid var(--line);border-radius:4px;padding:16px;text-align:center;background:linear-gradient(#fff,#f6f9fd)}
 .metric .lbl{font-size:12px;color:#666}.metric .val{font-size:22px;font-weight:800;color:var(--blue-d)}
 .metric.accent{border-top:3px solid var(--orange)}
-.site-footer .bar{background:var(--navy)}.site-footer .bar .inner{max-width:1240px;margin:0 auto;padding:12px 16px}
+.site-footer{flex-shrink:0;margin-top:auto;width:100%}.site-footer .bar{background:var(--navy)}.site-footer .bar .inner{max-width:1240px;margin:0 auto;padding:12px 16px}
 .site-footer .bar a{color:#fff;text-decoration:none;margin-right:6px}.site-footer .bar span{color:#6c84a8;margin-right:6px}
 .site-footer .info{max-width:1240px;margin:0 auto;padding:14px 16px 30px;font-size:12px;color:#777}
 @media(max-width:860px){.layout{flex-direction:column}.sidebar{width:100%}.top-header .inner{flex-wrap:wrap}.top-nav{display:none}}
@@ -107,6 +107,11 @@ canvas{max-width:100%}
 @media (max-width:768px){.table-bid td.title{min-width:180px;max-width:240px}}
 
 #bid-list,.bid-list-anchor{scroll-margin-top:12px}
+/* 페이징 2·4·5·10건이어도 목록 높이·푸터 위치 동일 */
+#bid-list{min-height:460px;display:flex;flex-direction:column}
+#bid-list .table-responsive{flex:1 1 auto;min-height:380px}
+#bid-list .pager{margin-top:auto;padding-top:16px}
+
 @media(max-width:860px){#bid-list,.bid-list-anchor{scroll-margin-top:8px}}
 
 /* 조회 중 전체 화면 로딩 오버레이 */
