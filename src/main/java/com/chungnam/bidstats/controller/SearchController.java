@@ -33,7 +33,7 @@ public class SearchController {
         m.addAttribute("regions", settings.regions());
         m.addAttribute("presets", settings.list());
         m.addAttribute("mockMode", search.isMockMode());
-        if (run != null) {
+        if ("1".equals(run)) {
             try {
                 com.chungnam.bidstats.util.PageResult.apply(m, search.search(form), page, form.toQuery() + "&run=1");
                 m.addAttribute("statsQuery", form.toQuery());

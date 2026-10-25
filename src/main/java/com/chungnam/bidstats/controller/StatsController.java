@@ -33,9 +33,10 @@ public class StatsController {
                         @RequestParam(defaultValue = "1") int page, Model m) throws Exception {
         m.addAttribute("regions", settings.regions());
         m.addAttribute("mockMode", search.isMockMode());
-        m.addAttribute("ran", run != null);
+        boolean doRun = "1".equals(run);
+        m.addAttribute("ran", doRun);
 
-        if (run == null) {
+        if (!doRun) {
             // 메뉴·시·군 이동은 즉시 폼만 표시 (나라장터 호출 없음)
             StatsSummaryVo empty = stats.summarize(Regions.nameOf(form.getRegionCode()), List.of());
             m.addAttribute("summary", empty);
