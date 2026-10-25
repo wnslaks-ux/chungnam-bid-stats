@@ -1,0 +1,7 @@
+target/
+data/
+.idea/
+*.iml
+deploy-config/
+*.log
+.env

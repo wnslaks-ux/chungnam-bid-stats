@@ -1,0 +1,3 @@
+<%@ page pageEncoding="UTF-8" %>
+<c:if test="${not empty msg}"><div class="alert alert-success py-2">${msg}</div></c:if>
+<c:if test="${not empty err}"><div class="alert alert-danger py-2">${err}</div></c:if>

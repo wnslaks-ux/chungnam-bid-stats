@@ -1,0 +1,37 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+      force-request: true
+      force-response: true
+  tomcat:
+    uri-encoding: UTF-8
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/bidstats;MODE=MySQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2.console.enabled: true
+  sql.init.mode: always
+  sql.init.encoding: UTF-8
+  mvc.view.prefix: /WEB-INF/jsp/
+  mvc.view.suffix: .jsp
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  configuration.map-underscore-to-camel-case: true
+g2b:
+  base-url: https://apis.data.go.kr/1230000/ad/BidPublicInfoService
+  service-key: ${G2B_SERVICE_KEY:}   # 비어있으면 Mock 모드
+  num-of-rows: 100
+admin:
+  username: ${ADMIN_USERNAME:admin}
+  password: ${ADMIN_PASSWORD:admin123}   # 최초 1회 시드용. 로그인 후 /admin/password 에서 반드시 변경

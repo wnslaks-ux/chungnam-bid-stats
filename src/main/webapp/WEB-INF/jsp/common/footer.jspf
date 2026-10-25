@@ -1,0 +1,10 @@
+</main>
+</div>
+<footer class="site-footer">
+  <div class="bar"><div class="inner">
+    <a href="/"><%= "\uD648" %></a><span>|</span><a href="/search"><%= "\uAC80\uC0C9" %></a><span>|</span><a href="/settings"><%= "\uC124\uC815" %></a><span>|</span><a href="/stats"><%= "\uD1B5\uACC4" %></a>
+  </div></div>
+  <div class="info"><%= "\uB370\uC774\uD130\u0020\uCD9C\uCC98\u003A\u0020\uC870\uB2EC\uCCAD\u0020\uB098\uB77C\uC7A5\uD130\u0020\uC785\uCC30\uACF5\uACE0\uC815\uBCF4\uC11C\uBE44\uC2A4\u0020\u0028\uACF5\uACF5\uB370\uC774\uD130\uD3EC\uD138\u0029" %><br>&copy; CN Bid Stats</div>
+</footer>
+</body>
+</html>

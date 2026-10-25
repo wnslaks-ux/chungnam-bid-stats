@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chungnam.bidstats.mapper.BidCacheMapper">
+  <insert id="merge">
+    MERGE INTO bid_cache (bid_ntce_no, bid_ntce_nm, dminstt_nm, bid_ntce_dt, presmpt_prce, bid_ntce_url) KEY(bid_ntce_no)
+    VALUES (#{bidNtceNo}, #{bidNtceNm}, #{dminsttNm}, #{bidNtceDt}, #{presmptPrce}, #{bidNtceUrl})
+  </insert>
+  <select id="countAll" resultType="int">SELECT COUNT(*) FROM bid_cache</select>
+</mapper>

@@ -1,0 +1,8 @@
+server:
+  port: ${PORT:8080}
+spring:
+  datasource:
+    url: jdbc:h2:file:/tmp/bidstats-data/bidstats;MODE=MySQL
+  h2:
+    console:
+      enabled: false

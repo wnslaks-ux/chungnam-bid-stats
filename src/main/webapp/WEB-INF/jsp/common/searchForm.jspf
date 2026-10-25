@@ -1,0 +1,18 @@
+<%@ page pageEncoding="UTF-8" %>
+<form class="panel search-box" method="get" action="${formAction}">
+  <input type="hidden" name="run" value="1">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-2"><label class="form-label">시·군</label>
+      <select name="regionCode" class="form-select">
+        <c:forEach var="r" items="${regions}">
+          <option value="${r.regionCode}" ${r.regionCode == form.regionCode ? 'selected' : ''}>${r.regionName}</option>
+        </c:forEach>
+      </select></div>
+    <div class="col-md-2"><label class="form-label">시작일</label><input type="date" name="dateFrom" value="${form.dateFrom}" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">종료일</label><input type="date" name="dateTo" value="${form.dateTo}" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">최소 추정가격(원)</label><input type="number" name="minPrice" value="${form.minPrice}" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">최대 추정가격(원)</label><input type="number" name="maxPrice" value="${form.maxPrice}" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">키워드(공고명)</label><input type="text" name="keyword" value="${form.keyword}" class="form-control"></div>
+  </div>
+  <div class="mt-3"><button class="btn btn-primary px-5">검색</button> <a href="${formAction}" class="btn btn-outline-secondary">초기화</a></div>
+</form>

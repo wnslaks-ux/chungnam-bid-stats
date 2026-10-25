@@ -1,0 +1,17 @@
+<%@ page pageEncoding="UTF-8" %>
+<aside class="sidebar">
+  <h6>입찰자료</h6>
+  <a href="/" class="${curUri == '/' ? 'active' : ''}">홈</a>
+  <a href="/search" class="${fn:startsWith(curUri,'/search') ? 'active' : ''}">입찰공고 검색</a>
+  <a href="/stats" class="${fn:startsWith(curUri,'/stats') || fn:startsWith(curUri,'/region') ? 'active' : ''}">통계</a>
+  <a href="/settings" class="${fn:startsWith(curUri,'/settings') ? 'active' : ''}">검색조건 설정</a>
+  <h6>운영관리</h6>
+  <a href="/admin" class="${curUri == '/admin' ? 'active' : ''}">관리자 홈</a>
+  <a href="/admin/api-key" class="${fn:startsWith(curUri,'/admin/api-key') ? 'active' : ''}">API 키 설정</a>
+  <a href="/admin/password" class="${fn:startsWith(curUri,'/admin/password') ? 'active' : ''}">비밀번호 변경</a>
+  <h6>대상 시·군</h6>
+  <c:forEach var="sr" items="${regions}">
+    <a href="/region/${sr.regionCode}" class="${curUri == '/region/'.concat(sr.regionCode) ? 'active' : ''}">· ${sr.regionName}</a>
+  </c:forEach>
+  <div class="side-info">데이터: 조달청 나라장터<br>공사 입찰공고 기준</div>
+</aside>
