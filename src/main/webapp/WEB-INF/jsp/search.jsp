@@ -17,7 +17,7 @@
 <c:if test="${results != null}">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <span>검색 결과 <b>${totalCount}</b>건 <small class="text-muted">(${form.dateFrom} ~ ${form.dateTo})</small></span>
-    <a class="btn btn-sm btn-success" href="/stats?${statsQuery}">이 조건으로 통계 보기</a>
+    <a class="btn btn-sm btn-success" href="/stats?${statsQuery}&run=1">이 조건으로 통계 보기</a>
   </div>
   <c:if test="${totalCount == 0}">
     <div class="alert alert-warning">조회된 공사 입찰공고가 없습니다. 기간을 넓히거나 다른 시·군을 선택해 보세요.</div>

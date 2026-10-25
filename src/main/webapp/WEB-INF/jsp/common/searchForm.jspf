@@ -21,11 +21,16 @@
     <button type="button" class="btn btn-sm btn-outline-primary" onclick="setRange(this,6)">최근 6개월</button>
     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setYear(this)">올해</button>
   </div>
-  <div class="mt-3"><button class="btn btn-primary px-5">검색</button> <a href="${formAction}" class="btn btn-outline-secondary">초기화</a></div>
+  <div class="mt-3"><button type="submit" class="btn btn-primary px-5" id="btn-search">검색</button> <a href="${formAction}" class="btn btn-outline-secondary">초기화</a>
+    <span id="search-busy" class="text-muted small ms-2" style="display:none">나라장터 조회 중… 잠시만 기다려 주세요.</span></div>
 </form>
 <script>
 function _ymd(d){var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day;}
 function setRange(btn,n){var f=btn.form,t=new Date(),s=new Date(t);s.setMonth(s.getMonth()-n);s.setDate(s.getDate()+1);
   f.dateFrom.value=_ymd(s);f.dateTo.value=_ymd(t);}
 function setYear(btn){var f=btn.form,t=new Date();f.dateFrom.value=t.getFullYear()+'-01-01';f.dateTo.value=_ymd(t);}
+(function(){var f=document.querySelector('form.search-box');if(!f)return;
+  f.addEventListener('submit',function(){var b=document.getElementById('btn-search'),s=document.getElementById('search-busy');
+    if(b){b.disabled=true;b.textContent='조회 중…';} if(s)s.style.display='inline';});
+})();
 </script>

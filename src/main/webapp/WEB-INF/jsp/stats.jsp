@@ -1,12 +1,18 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ include file="common/header.jspf" %>
 <c:if test="${not empty errorMessage}"><div class="alert alert-danger">${errorMessage}</div></c:if>
-<h2 class="page-title">${summary.regionName} 공사 입찰 통계 <small>${form.dateFrom} ~ ${form.dateTo}</small></h2>
+<h2 class="page-title">${summary.regionName} 공사 입찰 통계 <c:if test="${ran}"><small>${form.dateFrom} ~ ${form.dateTo}</small></c:if></h2>
 <div class="content">
-<div class="alert alert-info py-2 small mb-3">기본 조회 기간은 최근 1개월입니다. 기간을 바꾼 뒤 검색을 누르면 통계가 갱신됩니다.</div>
+<div class="alert alert-info py-2 small mb-3">메뉴·시·군은 바로 열립니다. 기간을 고른 뒤 <b>검색</b>을 누르면 나라장터에서 통계를 불러옵니다. 기본 기간은 최근 1개월입니다.</div>
 
 <c:set var="formAction" value="/stats"/>
 <%@ include file="common/searchForm.jspf" %>
+
+<c:if test="${not ran}">
+  <div class="text-muted small mb-3">시·군과 기간을 확인한 뒤 <b>검색</b>을 누르면 공고 건수·금액 통계와 목록이 표시됩니다.</div>
+</c:if>
+
+<c:if test="${ran}">
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3"><div class="metric accent"><div class="lbl">공고 건수</div><div class="val">${summary.count}건</div></div></div>
   <div class="col-6 col-md-3"><div class="metric accent"><div class="lbl">추정금액 합계</div><div class="val"><fmt:formatNumber value="${summary.totalPrice}" pattern="#,###"/>원</div></div></div>
@@ -28,5 +34,6 @@ new Chart(document.getElementById('monthly'), {
   options: {responsive: true, maintainAspectRatio: false, scales: {y: {position: 'left'}, y1: {position: 'right', grid: {drawOnChartArea: false}}}}
 });
 </script>
+</c:if>
 </div>
 <%@ include file="common/footer.jspf" %>
