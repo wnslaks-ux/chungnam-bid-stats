@@ -27,7 +27,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        org.springframework.http.client.SimpleClientHttpRequestFactory rf =
+            new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        rf.setConnectTimeout(5000);
+        rf.setReadTimeout(20000);
+        return new RestTemplate(rf);
     }
 
     /** Windows에서 JSP 컴파일 시 기본 인코딩(MS949) 대신 UTF-8 사용 */

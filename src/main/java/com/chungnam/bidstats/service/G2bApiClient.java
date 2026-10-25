@@ -32,8 +32,12 @@ public class G2bApiClient {
     private static final DateTimeFormatter YMD = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     /** 월 구간 병렬 조회용 소규모 데몬 스레드 풀 */
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(4, r -> {
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(6, r -> {
         Thread t = new Thread(r, "g2b-fetch"); t.setDaemon(true); return t;
+    });
+    /** 같은 월 구간 안의 2페이지 이후를 병렬 조회 (월 풀과 분리해 교착 방지) */
+    private static final ExecutorService PAGE_POOL = Executors.newFixedThreadPool(8, r -> {
+        Thread t = new Thread(r, "g2b-page"); t.setDaemon(true); return t;
     });
 
     private final RestTemplate restTemplate;
@@ -109,41 +113,61 @@ public class G2bApiClient {
     }
 
     private List<BidNoticeVo> fetchWindow(String regionName, SearchFormDto f, LocalDate from, LocalDate to) {
+        // 1페이지로 totalCount 확인 후, 나머지 페이지(최대 10)는 병렬 조회
         List<BidNoticeVo> all = new ArrayList<>();
-        int page = 1;
-        while (page <= 10) {
-            URI uri = buildUri(regionName, f, from, to, page);
-            try {
-                String body = restTemplate.getForObject(uri, String.class);
-                if (body == null || body.isBlank()) break;
-                JsonNode response = om.readTree(body).path("response");
-                String code = response.path("header").path("resultCode").asText("");
-                String msg = response.path("header").path("resultMsg").asText("");
-                if (!code.isEmpty() && !"00".equals(code) && !"0".equals(code)) {
-                    log.error("나라장터 API 오류 resultCode={} resultMsg={} ({}~{})", code, msg, from, to);
-                    throw new IllegalStateException("나라장터 API 오류: " + code + " " + msg);
-                }
-                JsonNode root = response.path("body");
-                JsonNode items = root.path("items");
-                if (items.isMissingNode() || items.isNull()) break;
-                if (items.isObject() && items.has("item")) items = items.get("item");
-                if (items.isObject()) {
-                    all.add(map(items));
-                    break;
-                }
-                if (!items.isArray() || items.size() == 0) break;
-                for (JsonNode it : items) all.add(map(it));
-                int total = root.path("totalCount").asInt(0);
-                if (page * numOfRows >= total) break;
-                page++;
-            } catch (IllegalStateException e) {
-                throw e;
-            } catch (Exception e) {
-                log.error("나라장터 API 호출 실패: {}", e.getMessage());
-                throw new IllegalStateException("나라장터 API 호출 실패: " + e.getMessage(), e);
-            }
+        int total = fetchPage(regionName, f, from, to, 1, all);
+        int pages = Math.min(10, (int) Math.ceil(total / (double) numOfRows));
+        if (pages <= 1) return all;
+        List<CompletableFuture<List<BidNoticeVo>>> rest = new ArrayList<>();
+        for (int p = 2; p <= pages; p++) {
+            final int pg = p;
+            rest.add(CompletableFuture.supplyAsync(() -> {
+                List<BidNoticeVo> out = new ArrayList<>();
+                fetchPage(regionName, f, from, to, pg, out);
+                return out;
+            }, PAGE_POOL));
+        }
+        try {
+            for (CompletableFuture<List<BidNoticeVo>> fu : rest) all.addAll(fu.join());
+        } catch (CompletionException e) {
+            rest.forEach(x -> x.cancel(true));
+            Throwable c = e.getCause();
+            if (c instanceof IllegalStateException ise) throw ise;
+            throw new IllegalStateException("나라장터 API 호출 실패: " + (c == null ? e.getMessage() : c.getMessage()), c);
         }
         return all;
+    }
+
+    /** 한 페이지 조회 → out에 추가, totalCount 반환 */
+    private int fetchPage(String regionName, SearchFormDto f, LocalDate from, LocalDate to, int page, List<BidNoticeVo> out) {
+        URI uri = buildUri(regionName, f, from, to, page);
+        long t0 = System.currentTimeMillis();
+        try {
+            String body = restTemplate.getForObject(uri, String.class);
+            if (body == null || body.isBlank()) return 0;
+            JsonNode response = om.readTree(body).path("response");
+            String code = response.path("header").path("resultCode").asText("");
+            String msg = response.path("header").path("resultMsg").asText("");
+            if (!code.isEmpty() && !"00".equals(code) && !"0".equals(code)) {
+                log.error("나라장터 API 오류 resultCode={} resultMsg={} ({}~{})", code, msg, from, to);
+                throw new IllegalStateException("나라장터 API 오류: " + code + " " + msg);
+            }
+            JsonNode root = response.path("body");
+            int total = root.path("totalCount").asInt(0);
+            JsonNode items = root.path("items");
+            if (items.isMissingNode() || items.isNull()) return total;
+            if (items.isObject() && items.has("item")) items = items.get("item");
+            if (items.isObject()) { out.add(map(items)); return Math.max(total, 1); }
+            if (items.isArray()) for (JsonNode it : items) out.add(map(it));
+            return total;
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("나라장터 API 호출 실패: {}", e.getMessage());
+            throw new IllegalStateException("나라장터 API 호출 실패: " + e.getMessage(), e);
+        } finally {
+            log.debug("g2b page {} {}~{} {}ms", page, from, to, System.currentTimeMillis() - t0);
+        }
     }
 
     private URI buildUri(String regionName, SearchFormDto f, LocalDate from, LocalDate to, int page) {

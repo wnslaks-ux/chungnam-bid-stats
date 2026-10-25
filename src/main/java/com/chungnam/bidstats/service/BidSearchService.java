@@ -35,6 +35,14 @@ public class BidSearchService {
             String.valueOf(f.getMinPrice()), String.valueOf(f.getMaxPrice()), String.valueOf(isMockMode()));
     }
 
+    /** 세션 간 공유 메모리 캐시(10분 TTL) — 다른 사용자/새 세션도 같은 조건이면 즉시 */
+    private static final long TTL_MS = 10 * 60 * 1000L;
+    private record Entry(long at, List<BidNoticeVo> list) { }
+    private final java.util.concurrent.ConcurrentHashMap<String, Entry> shared = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.ExecutorService DB_POOL = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "bid-cache-db"); t.setDaemon(true); return t;
+    });
+
     @SuppressWarnings("unchecked")
     public List<BidNoticeVo> search(SearchFormDto f) {
         String fp = fingerprint(f);
@@ -48,9 +56,19 @@ public class BidSearchService {
                 return (List<BidNoticeVo>) l;
             }
         }
-        long t0 = System.currentTimeMillis();
-        List<BidNoticeVo> list = fetch(f);
-        log.info("bid search cache MISS fp={} size={} fetched in {}ms", fp, list.size(), System.currentTimeMillis() - t0);
+        long now = System.currentTimeMillis();
+        shared.values().removeIf(e -> now - e.at() > TTL_MS);
+        Entry e = shared.get(fp);
+        List<BidNoticeVo> list;
+        if (e != null) {
+            list = e.list();
+            log.info("bid search shared cache HIT fp={} size={}", fp, list.size());
+        } else {
+            long t0 = System.currentTimeMillis();
+            list = fetch(f);
+            shared.put(fp, new Entry(System.currentTimeMillis(), list));
+            log.info("bid search cache MISS fp={} size={} fetched in {}ms", fp, list.size(), System.currentTimeMillis() - t0);
+        }
         if (session != null) {
             session.setAttribute(KEY_LIST, list);
             session.setAttribute(KEY_FP, fp);
@@ -65,7 +83,10 @@ public class BidSearchService {
             .filter(v -> f.getMaxPrice() == null || v.getPresmptPrce() <= f.getMaxPrice())
             .filter(v -> f.getKeyword() == null || f.getKeyword().isBlank() || v.getBidNtceNm().contains(f.getKeyword()))
             .collect(Collectors.toCollection(ArrayList::new));
-        if (!client.isMockMode()) list.forEach(cacheMapper::merge);
+        if (!client.isMockMode()) {
+            List<BidNoticeVo> copy = List.copyOf(list);
+            DB_POOL.submit(() -> { try { copy.forEach(cacheMapper::merge); } catch (Exception ex) { log.warn("bid_cache merge 실패: {}", ex.getMessage()); } });
+        }
         return java.util.Collections.unmodifiableList(list);
     }
 }
