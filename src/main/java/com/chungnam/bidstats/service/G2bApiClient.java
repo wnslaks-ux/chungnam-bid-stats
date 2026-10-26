@@ -83,7 +83,7 @@ public class G2bApiClient {
     }
 
     /** 동시에 나라장터로 나가는 HTTP 요청 수 상한(서버 과부하·타임아웃 방지) */
-    private static final java.util.concurrent.Semaphore HTTP_SLOTS = new java.util.concurrent.Semaphore(6);
+    private static final java.util.concurrent.Semaphore HTTP_SLOTS = new java.util.concurrent.Semaphore(10);
     private static final int CHUNK_DAYS = 15;
     private static final int MAX_RETRIES = 2;
 
@@ -102,14 +102,15 @@ public class G2bApiClient {
         // 긴 기간은 15일 단위로 잘게 나눠 응답 지연(타임아웃) 위험을 줄임 (최대 약 2년)
         List<LocalDate[]> ranges = new ArrayList<>();
         while (!cursor.isAfter(end) && ranges.size() < 50) {
-            LocalDate windowEnd = cursor.plusDays(CHUNK_DAYS - 1);
+            // 달력 기준(1~15일, 16일~말일)으로 고정 분할 → 다른 기간 검색과도 구간 캐시 공유
+            LocalDate windowEnd = cursor.getDayOfMonth() <= 15 ? cursor.withDayOfMonth(15) : cursor.withDayOfMonth(cursor.lengthOfMonth());
             if (windowEnd.isAfter(end)) windowEnd = end;
             ranges.add(new LocalDate[]{cursor, windowEnd});
             cursor = windowEnd.plusDays(1);
         }
         List<CompletableFuture<List<BidNoticeVo>>> futures = new ArrayList<>();
         for (LocalDate[] r : ranges) {
-            futures.add(CompletableFuture.supplyAsync(() -> fetchWindow(regionName, f, r[0], r[1]), POOL));
+            futures.add(CompletableFuture.supplyAsync(() -> cachedWindow(regionName, f, r[0], r[1]), POOL));
         }
         List<String> failed = new ArrayList<>();
         Throwable lastErr = null;
@@ -150,6 +151,25 @@ public class G2bApiClient {
     static String friendly(Throwable t) {
         if (isTimeout(t)) return "나라장터 서버 응답이 지연되어 조회하지 못했습니다. 잠시 후 다시 검색하거나 기간을 줄여 주세요.";
         return "나라장터 API 호출 실패: " + (t == null ? "" : t.getMessage());
+    }
+
+    /** 구간 단위 캐시: 이미 지난 구간(어제 이전)은 12시간, 최근 구간은 10분 재사용.
+     *  1년 검색 후 6개월/3개월 검색, 페이지 이동·통계 등은 겹치는 구간을 다시 부르지 않음. */
+    private record WinEntry(long at, long ttl, List<BidNoticeVo> list) { }
+    private static final java.util.concurrent.ConcurrentHashMap<String, WinEntry> WIN_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long PAST_TTL = 12 * 3600_000L, RECENT_TTL = 10 * 60_000L;
+
+    private List<BidNoticeVo> cachedWindow(String regionName, SearchFormDto f, LocalDate from, LocalDate to) {
+        String kw = f.getKeyword() == null ? "" : f.getKeyword().trim();
+        String k = regionName + "|" + kw + "|" + from + "|" + to;
+        long now = System.currentTimeMillis();
+        WinEntry e = WIN_CACHE.get(k);
+        if (e != null && now - e.at() < e.ttl()) return e.list();
+        List<BidNoticeVo> list = List.copyOf(fetchWindow(regionName, f, from, to));
+        long ttl = to.isBefore(LocalDate.now().minusDays(1)) ? PAST_TTL : RECENT_TTL;
+        if (WIN_CACHE.size() > 2000) WIN_CACHE.entrySet().removeIf(x -> now - x.getValue().at() > x.getValue().ttl());
+        WIN_CACHE.put(k, new WinEntry(now, ttl, list));
+        return list;
     }
 
     private List<BidNoticeVo> fetchWindow(String regionName, SearchFormDto f, LocalDate from, LocalDate to) {
