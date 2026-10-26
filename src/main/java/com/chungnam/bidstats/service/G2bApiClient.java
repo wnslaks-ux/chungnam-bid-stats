@@ -115,7 +115,12 @@ public class G2bApiClient {
         Throwable lastErr = null;
         for (int i = 0; i < futures.size(); i++) {
             try {
-                for (BidNoticeVo v : futures.get(i).join()) dedup.putIfAbsent(v.getBidNtceNo(), v);
+                for (BidNoticeVo v : futures.get(i).join()) {
+                    // 같은 공고의 정정·재공고(차수)는 1건으로: 최신 차수만 유지
+                    String base = v.getBidNtceNo().replaceAll("-[^-]*$", "");
+                    BidNoticeVo prev = dedup.get(base);
+                    if (prev == null || prev.getBidNtceNo().compareTo(v.getBidNtceNo()) < 0) dedup.put(base, v);
+                }
             } catch (CompletionException e) {
                 Throwable c = e.getCause() == null ? e : e.getCause();
                 // 인증키 오류 등 API 자체 오류는 전체 실패로 처리
@@ -150,7 +155,9 @@ public class G2bApiClient {
     private List<BidNoticeVo> fetchWindow(String regionName, SearchFormDto f, LocalDate from, LocalDate to) {
         List<BidNoticeVo> all = new ArrayList<>();
         int total = fetchPageRetry(regionName, f, from, to, 1, all);
-        int pages = Math.min(20, (int) Math.ceil(total / (double) numOfRows));
+        int need = (int) Math.ceil(total / (double) numOfRows);
+        int pages = Math.min(20, need);
+        if (need > pages) log.warn("구간 {}~{} 결과 {}건 중 일부만 조회(페이지 상한)", from, to, total);
         if (pages <= 1) return all;
         List<CompletableFuture<List<BidNoticeVo>>> rest = new ArrayList<>();
         for (int p = 2; p <= pages; p++) {

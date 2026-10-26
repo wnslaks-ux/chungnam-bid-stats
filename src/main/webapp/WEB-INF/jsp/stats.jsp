@@ -20,9 +20,32 @@
   <div class="col-6 col-md-3"><div class="metric accent"><div class="lbl">평균 추정금액</div><div class="val"><fmt:formatNumber value="${summary.avgPrice}" pattern="#,###"/>원</div></div></div>
   <div class="col-6 col-md-3"><div class="metric accent"><div class="lbl">최대 / 최소</div><div class="val" style="font-size:15px"><fmt:formatNumber value="${summary.maxPrice}" pattern="#,###"/> / <fmt:formatNumber value="${summary.minPrice}" pattern="#,###"/>원</div></div></div>
 </div>
-<div class="panel"><h5>월별 추정금액 합계 / 건수</h5><div class="chart-box"><canvas id="monthly"></canvas></div></div>
-<div class="panel" id="bid-list-panel"><h5>공고 목록</h5><%@ include file="common/resultTable.jspf" %></div>
+<div class="panel"><h5>월별 공고 건수 <small class="text-muted">(합계 ${summary.count}건 · 목록과 동일 기준)</small></h5><div class="chart-box" style="height:280px"><canvas id="monthlyCount"></canvas></div></div>
+<div class="panel"><h5>월별 추정금액 합계 <small class="text-muted">(단위: 억원)</small></h5><div class="chart-box" style="height:280px"><canvas id="monthlyTotal"></canvas></div></div>
+<div class="panel" id="bid-list-panel"><h5>공고 목록 <small class="text-muted">(총 ${summary.count}건)</small></h5><%@ include file="common/resultTable.jspf" %></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  var labels = (${chartLabels}).map(function(l){ var p=l.split('-'); return p.length==2 ? p[0].slice(2)+'.'+p[1]+'월' : l; });
+  var counts = ${chartCounts};
+  var eok = (${chartTotals}).map(function(v){ return Math.round(v/1e6)/100; });
+  var small = window.innerWidth < 576;
+  Chart.defaults.font.size = small ? 11 : 13;
+  function opts(unit, fmt){ return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false},
+      tooltip:{ callbacks:{ label:function(c){ return ' '+fmt(c.parsed.y)+unit; } } } },
+    scales:{ x:{ grid:{display:false}, ticks:{ autoSkip:true, maxRotation:0, maxTicksLimit: small?6:12 } },
+             y:{ beginAtZero:true, ticks:{ precision:0, maxTicksLimit:6, callback:function(v){ return fmt(v)+unit; } }, grid:{color:'rgba(0,0,0,.06)'} } } }; }
+  var nf = function(v){ return Number(v).toLocaleString('ko-KR'); };
+  new Chart(document.getElementById('monthlyCount'), { type:'bar',
+    data:{ labels:labels, datasets:[{ label:'건수', data:counts, backgroundColor:'rgba(245,124,0,.8)', borderRadius:4, maxBarThickness:40 }] },
+    options: opts('건', nf) });
+  new Chart(document.getElementById('monthlyTotal'), { type:'bar',
+    data:{ labels:labels, datasets:[{ label:'추정금액', data:eok, backgroundColor:'rgba(21,101,192,.8)', borderRadius:4, maxBarThickness:40 }] },
+    options: opts('억', function(v){ return Number(v).toLocaleString('ko-KR',{maximumFractionDigits:1}); }) });
+})();
+</script>
 <script>
 new Chart(document.getElementById('monthly'), {
   data: {

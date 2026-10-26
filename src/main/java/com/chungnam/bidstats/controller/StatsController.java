@@ -48,7 +48,7 @@ public class StatsController {
 
         try {
             List<BidNoticeVo> list = search.search(form);
-            StatsSummaryVo s = stats.summarize(Regions.nameOf(form.getRegionCode()), list);
+            StatsSummaryVo s = stats.summarize(Regions.nameOf(form.getRegionCode()), list, form.getDateFrom(), form.getDateTo());
             m.addAttribute("summary", s);
             PageResult.apply(m, list, page, form.toQuery() + "&run=1");
             m.addAttribute("chartLabels", om.writeValueAsString(s.getMonthlyTotal().keySet()));

@@ -87,7 +87,12 @@ public class BidSearchService {
     private G2bApiClient.FetchResult fetch(SearchFormDto f) {
         String regionName = Regions.nameOf(f.getRegionCode());
         G2bApiClient.FetchResult raw = client.fetchConstructionBidsResult(regionName, f);
+        String fromS = String.valueOf(f.getDateFrom()), toS = String.valueOf(f.getDateTo());
         List<BidNoticeVo> list = raw.list().stream()
+            // 공고일이 검색 기간 밖이면 제외(목록·통계 건수 일치)
+            .filter(v -> { String d = v.getBidNtceDt() == null ? "" : v.getBidNtceDt();
+                if (d.length() < 10) return true; String day = d.substring(0, 10).replace('/', '-');
+                return day.compareTo(fromS) >= 0 && day.compareTo(toS) <= 0; })
             .filter(v -> f.getMinPrice() == null || v.getPresmptPrce() >= f.getMinPrice())
             .filter(v -> f.getMaxPrice() == null || v.getPresmptPrce() <= f.getMaxPrice())
             .filter(v -> f.getKeyword() == null || f.getKeyword().isBlank() || v.getBidNtceNm().contains(f.getKeyword()))
