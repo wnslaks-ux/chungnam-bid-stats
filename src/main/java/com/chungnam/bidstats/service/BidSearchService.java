@@ -65,7 +65,15 @@ public class BidSearchService {
             log.info("bid search shared cache HIT fp={} size={}", fp, list.size());
         } else {
             long t0 = System.currentTimeMillis();
-            list = fetch(f);
+            G2bApiClient.FetchResult r = fetch(f);
+            list = r.list();
+            if (r.partial()) {
+                // 일부 구간 실패: 캐시하지 않고(다음 검색 때 재시도) 경고 표시
+                if (attrs instanceof ServletRequestAttributes sra2) sra2.getRequest().setAttribute("g2bWarning",
+                    "나라장터 응답 지연으로 일부 기간(" + String.join(", ", r.failedRanges()) + ")이 누락되었습니다. 다시 검색하면 보완됩니다.");
+                log.info("bid search PARTIAL fp={} failed={}", fp, r.failedRanges());
+                return list;
+            }
             shared.put(fp, new Entry(System.currentTimeMillis(), list));
             log.info("bid search cache MISS fp={} size={} fetched in {}ms", fp, list.size(), System.currentTimeMillis() - t0);
         }
@@ -76,9 +84,10 @@ public class BidSearchService {
         return list;
     }
 
-    private List<BidNoticeVo> fetch(SearchFormDto f) {
+    private G2bApiClient.FetchResult fetch(SearchFormDto f) {
         String regionName = Regions.nameOf(f.getRegionCode());
-        List<BidNoticeVo> list = client.fetchConstructionBids(regionName, f).stream()
+        G2bApiClient.FetchResult raw = client.fetchConstructionBidsResult(regionName, f);
+        List<BidNoticeVo> list = raw.list().stream()
             .filter(v -> f.getMinPrice() == null || v.getPresmptPrce() >= f.getMinPrice())
             .filter(v -> f.getMaxPrice() == null || v.getPresmptPrce() <= f.getMaxPrice())
             .filter(v -> f.getKeyword() == null || f.getKeyword().isBlank() || v.getBidNtceNm().contains(f.getKeyword()))
@@ -87,6 +96,6 @@ public class BidSearchService {
             List<BidNoticeVo> copy = List.copyOf(list);
             DB_POOL.submit(() -> { try { copy.forEach(cacheMapper::merge); } catch (Exception ex) { log.warn("bid_cache merge 실패: {}", ex.getMessage()); } });
         }
-        return java.util.Collections.unmodifiableList(list);
+        return new G2bApiClient.FetchResult(java.util.Collections.unmodifiableList(list), raw.failedRanges());
     }
 }

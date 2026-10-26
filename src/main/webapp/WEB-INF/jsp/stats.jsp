@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ include file="common/header.jspf" %>
 <c:if test="${not empty errorMessage}"><div class="alert alert-danger">${errorMessage}</div></c:if>
+<c:if test="${not empty requestScope.g2bWarning}"><div class="alert alert-warning">${requestScope.g2bWarning}</div></c:if>
 <h2 class="page-title">${summary.regionName} 공사 입찰 통계 <c:if test="${ran}"><small>${form.dateFrom} ~ ${form.dateTo}</small></c:if></h2>
 <div class="content">
 <div class="alert alert-info py-2 small mb-3">메뉴·시·군은 바로 열립니다. 기간을 고른 뒤 <b>검색</b>을 누르면 나라장터에서 통계를 불러옵니다. 기본 기간은 최근 1개월입니다.</div>

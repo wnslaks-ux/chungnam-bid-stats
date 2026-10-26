@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ include file="common/header.jspf" %>
 <c:if test="${not empty errorMessage}"><div class="alert alert-danger">${errorMessage}</div></c:if>
+<c:if test="${not empty requestScope.g2bWarning}"><div class="alert alert-warning">${requestScope.g2bWarning}</div></c:if>
 <h2 class="page-title">입찰공고 검색 <small>공사</small></h2>
 <div class="content">
 <div class="alert alert-info py-2 small mb-3">나라장터는 <b>한 번에 약 1개월</b> 단위로 조회합니다. 기본값은 최근 1개월이며, 기간을 늘리면 월별로 나눠 합산합니다. 시·군은 수요기관명 기준입니다.</div>

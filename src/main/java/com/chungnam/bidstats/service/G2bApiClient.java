@@ -32,11 +32,11 @@ public class G2bApiClient {
     private static final DateTimeFormatter YMD = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     /** 월 구간 병렬 조회용 소규모 데몬 스레드 풀 */
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(6, r -> {
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(8, r -> {
         Thread t = new Thread(r, "g2b-fetch"); t.setDaemon(true); return t;
     });
     /** 같은 월 구간 안의 2페이지 이후를 병렬 조회 (월 풀과 분리해 교착 방지) */
-    private static final ExecutorService PAGE_POOL = Executors.newFixedThreadPool(8, r -> {
+    private static final ExecutorService PAGE_POOL = Executors.newFixedThreadPool(16, r -> {
         Thread t = new Thread(r, "g2b-page"); t.setDaemon(true); return t;
     });
 
@@ -77,53 +77,87 @@ public class G2bApiClient {
         return k.isBlank() || k.contains("YOUR") || k.contains("\uBC1C\uAE09");
     }
 
+    /** 조회 결과 + 실패한 구간 목록(부분 실패 허용) */
+    public record FetchResult(List<BidNoticeVo> list, List<String> failedRanges) {
+        public boolean partial() { return !failedRanges.isEmpty(); }
+    }
+
+    /** 동시에 나라장터로 나가는 HTTP 요청 수 상한(서버 과부하·타임아웃 방지) */
+    private static final java.util.concurrent.Semaphore HTTP_SLOTS = new java.util.concurrent.Semaphore(6);
+    private static final int CHUNK_DAYS = 15;
+    private static final int MAX_RETRIES = 2;
+
     public List<BidNoticeVo> fetchConstructionBids(String regionName, SearchFormDto f) {
-        if (isMockMode()) return mock(regionName, f);
-        // 나라장터는 조회기간을 한 번에 약 1개월만 허용 → 월 단위로 나눠 합침
+        return fetchConstructionBidsResult(regionName, f).list();
+    }
+
+    public FetchResult fetchConstructionBidsResult(String regionName, SearchFormDto f) {
+        if (isMockMode()) return new FetchResult(mock(regionName, f), List.of());
         Map<String, BidNoticeVo> dedup = new LinkedHashMap<>();
         LocalDate cursor = f.getDateFrom();
         LocalDate end = f.getDateTo();
         if (cursor == null || end == null || cursor.isAfter(end)) {
             throw new IllegalStateException("조회 기간이 올바르지 않습니다.");
         }
-        // 월 구간 목록 생성 (최대 24개월)
+        // 긴 기간은 15일 단위로 잘게 나눠 응답 지연(타임아웃) 위험을 줄임 (최대 약 2년)
         List<LocalDate[]> ranges = new ArrayList<>();
-        while (!cursor.isAfter(end) && ranges.size() < 24) {
-            LocalDate windowEnd = cursor.plusMonths(1).minusDays(1);
+        while (!cursor.isAfter(end) && ranges.size() < 50) {
+            LocalDate windowEnd = cursor.plusDays(CHUNK_DAYS - 1);
             if (windowEnd.isAfter(end)) windowEnd = end;
             ranges.add(new LocalDate[]{cursor, windowEnd});
             cursor = windowEnd.plusDays(1);
         }
-        // 월 구간을 병렬 조회(소규모 풀), 결과는 기간 순서대로 병합+공고번호 중복 제거
         List<CompletableFuture<List<BidNoticeVo>>> futures = new ArrayList<>();
         for (LocalDate[] r : ranges) {
             futures.add(CompletableFuture.supplyAsync(() -> fetchWindow(regionName, f, r[0], r[1]), POOL));
         }
-        try {
-            for (CompletableFuture<List<BidNoticeVo>> fu : futures) {
-                for (BidNoticeVo v : fu.join()) dedup.putIfAbsent(v.getBidNtceNo(), v);
+        List<String> failed = new ArrayList<>();
+        Throwable lastErr = null;
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                for (BidNoticeVo v : futures.get(i).join()) dedup.putIfAbsent(v.getBidNtceNo(), v);
+            } catch (CompletionException e) {
+                Throwable c = e.getCause() == null ? e : e.getCause();
+                // 인증키 오류 등 API 자체 오류는 전체 실패로 처리
+                if (c instanceof IllegalStateException ise && ise.getMessage() != null && ise.getMessage().startsWith("나라장터 API 오류")) {
+                    futures.forEach(x -> x.cancel(true));
+                    throw ise;
+                }
+                lastErr = c;
+                failed.add(ranges.get(i)[0] + "~" + ranges.get(i)[1]);
+                log.warn("구간 조회 실패 {}~{}: {}", ranges.get(i)[0], ranges.get(i)[1], c.getMessage());
             }
-        } catch (CompletionException e) {
-            futures.forEach(x -> x.cancel(true));
-            Throwable c = e.getCause();
-            if (c instanceof IllegalStateException ise) throw ise;
-            throw new IllegalStateException("나라장터 API 호출 실패: " + (c == null ? e.getMessage() : c.getMessage()), c);
         }
-        return new ArrayList<>(dedup.values());
+        if (!failed.isEmpty() && failed.size() == ranges.size()) {
+            throw new IllegalStateException(friendly(lastErr), lastErr);
+        }
+        return new FetchResult(new ArrayList<>(dedup.values()), failed);
+    }
+
+    private static boolean isTimeout(Throwable t) {
+        for (Throwable c = t; c != null; c = c.getCause()) {
+            if (c instanceof java.net.SocketTimeoutException) return true;
+            if (c.getMessage() != null && c.getMessage().contains("timed out")) return true;
+        }
+        return false;
+    }
+
+    static String friendly(Throwable t) {
+        if (isTimeout(t)) return "나라장터 서버 응답이 지연되어 조회하지 못했습니다. 잠시 후 다시 검색하거나 기간을 줄여 주세요.";
+        return "나라장터 API 호출 실패: " + (t == null ? "" : t.getMessage());
     }
 
     private List<BidNoticeVo> fetchWindow(String regionName, SearchFormDto f, LocalDate from, LocalDate to) {
-        // 1페이지로 totalCount 확인 후, 나머지 페이지(최대 10)는 병렬 조회
         List<BidNoticeVo> all = new ArrayList<>();
-        int total = fetchPage(regionName, f, from, to, 1, all);
-        int pages = Math.min(10, (int) Math.ceil(total / (double) numOfRows));
+        int total = fetchPageRetry(regionName, f, from, to, 1, all);
+        int pages = Math.min(20, (int) Math.ceil(total / (double) numOfRows));
         if (pages <= 1) return all;
         List<CompletableFuture<List<BidNoticeVo>>> rest = new ArrayList<>();
         for (int p = 2; p <= pages; p++) {
             final int pg = p;
             rest.add(CompletableFuture.supplyAsync(() -> {
                 List<BidNoticeVo> out = new ArrayList<>();
-                fetchPage(regionName, f, from, to, pg, out);
+                fetchPageRetry(regionName, f, from, to, pg, out);
                 return out;
             }, PAGE_POOL));
         }
@@ -136,6 +170,29 @@ public class G2bApiClient {
             throw new IllegalStateException("나라장터 API 호출 실패: " + (c == null ? e.getMessage() : c.getMessage()), c);
         }
         return all;
+    }
+
+    /** 타임아웃/일시 오류 시 최대 2회 재시도(1.5s, 3s 백오프). 동시 요청 수는 세마포어로 제한 */
+    private int fetchPageRetry(String regionName, SearchFormDto f, LocalDate from, LocalDate to, int page, List<BidNoticeVo> out) {
+        for (int attempt = 0; ; attempt++) {
+            List<BidNoticeVo> tmp = new ArrayList<>();
+            try {
+                HTTP_SLOTS.acquire();
+                int total;
+                try { total = fetchPage(regionName, f, from, to, page, tmp); }
+                finally { HTTP_SLOTS.release(); }
+                out.addAll(tmp);
+                return total;
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("나라장터 조회가 중단되었습니다.", ie);
+            } catch (IllegalStateException e) {
+                boolean apiErr = e.getMessage() != null && e.getMessage().startsWith("나라장터 API 오류");
+                if (apiErr || attempt >= MAX_RETRIES) throw e;
+                log.warn("g2b 재시도 {}/{} page {} {}~{} ({})", attempt + 1, MAX_RETRIES, page, from, to, e.getMessage());
+                try { Thread.sleep(1500L * (attempt + 1)); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); throw e; }
+            }
+        }
     }
 
     /** 한 페이지 조회 → out에 추가, totalCount 반환 */
