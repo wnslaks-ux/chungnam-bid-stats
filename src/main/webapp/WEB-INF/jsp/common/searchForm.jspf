@@ -16,10 +16,11 @@
   </div>
   <div class="mt-2 date-presets">
     <span class="text-muted small me-1">빠른 기간:</span>
-    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setRange(this,1)">최근 1개월</button>
-    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setRange(this,3)">최근 3개월</button>
-    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setRange(this,6)">최근 6개월</button>
-    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setYear(this)">올해</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-preset="m1" onclick="setRange(this,1)">최근 1개월</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-preset="m3" onclick="setRange(this,3)">최근 3개월</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-preset="m6" onclick="setRange(this,6)">최근 6개월</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-preset="m12" onclick="setRange(this,12)">최근 1년</button>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-preset="year" onclick="setYear(this)">올해</button>
   </div>
   <div class="mt-3"><button type="submit" class="btn btn-primary px-5" id="btn-search">검색</button> <a href="${formAction}" class="btn btn-outline-secondary">초기화</a>
     <span id="search-busy" class="text-muted small ms-2" style="display:none">나라장터 조회 중… 잠시만 기다려 주세요.</span></div>
@@ -27,8 +28,15 @@
 <script>
 function _ymd(d){var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day;}
 function setRange(btn,n){var f=btn.form,t=new Date(),s=new Date(t);s.setMonth(s.getMonth()-n);s.setDate(s.getDate()+1);
-  f.dateFrom.value=_ymd(s);f.dateTo.value=_ymd(t);}
-function setYear(btn){var f=btn.form,t=new Date();f.dateFrom.value=t.getFullYear()+'-01-01';f.dateTo.value=_ymd(t);}
+  f.dateFrom.value=_ymd(s);f.dateTo.value=_ymd(t);markPreset(f);}
+function setYear(btn){var f=btn.form,t=new Date();f.dateFrom.value=t.getFullYear()+'-01-01';f.dateTo.value=_ymd(t);markPreset(f);}
+/* 현재 시작/종료일과 일치하는 빠른 기간 버튼을 선택 상태로 표시 */
+function _presetFrom(k){var t=new Date();if(k==='year')return t.getFullYear()+'-01-01';var s=new Date(t);s.setMonth(s.getMonth()-parseInt(k.slice(1),10));s.setDate(s.getDate()+1);return _ymd(s);}
+function markPreset(f){if(!f||!f.dateFrom)return;var today=_ymd(new Date()),hit=false;
+  f.querySelectorAll('[data-preset]').forEach(function(b){var on=!hit&&f.dateTo.value===today&&f.dateFrom.value===_presetFrom(b.dataset.preset);if(on)hit=true;
+    b.classList.toggle('active',on);b.classList.toggle('btn-primary',on);b.classList.toggle('btn-outline-primary',!on);b.setAttribute('aria-pressed',on?'true':'false');});}
+document.querySelectorAll('form').forEach(function(f){if(!f.querySelector('[data-preset]'))return;markPreset(f);
+  ['dateFrom','dateTo'].forEach(function(n){if(f[n])f[n].addEventListener('change',function(){markPreset(f);});});});
 (function(){var f=document.querySelector('form.search-box');if(!f)return;
   f.addEventListener('submit',function(){var b=document.getElementById('btn-search'),s=document.getElementById('search-busy');
     if(b){b.disabled=true;b.textContent='조회 중…';} if(s)s.style.display='inline'; if(window.showLoading)showLoading();});
